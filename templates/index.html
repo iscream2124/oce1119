@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF OCR 도구</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: border-color 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .loading {
+            text-align: center;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 PDF OCR 도구</h1>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-area" id="uploadArea">
+                <p>📁 PDF 파일을 드래그 앤 드롭하거나 클릭하여 선택하세요</p>
+                <input type="file" id="fileInput" name="file" accept=".pdf" required>
+            </div>
+            
+            <select name="lang" id="langSelect">
+                <option value="kor+eng">한국어 + 영어</option>
+                <option value="eng">영어만</option>
+                <option value="kor">한국어만</option>
+                <option value="jpn">일본어</option>
+                <option value="chi_sim">중국어</option>
+            </select>
+            
+            <button type="submit" id="submitBtn">🔍 OCR 실행</button>
+        </form>
+        
+        <div id="result" class="result">
+            <h3>📝 OCR 결과</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const result = document.getElementById('result');
+        const resultContent = document.getElementById('resultContent');
+
+        // 드래그 앤 드롭 이벤트
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+            }
+        });
+
+        // 클릭으로 파일 선택
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 폼 제출
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const lang = document.getElementById('langSelect').value;
+            formData.append('lang', lang);
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '처리 중...';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="success">
+                            ✅ OCR 처리 완료! (${data.num_pages}페이지)
+                        </div>
+                        <h4>전체 텍스트:</h4>
+                        <textarea readonly>${data.full_text}</textarea>
+                        <h4>페이지별 텍스트:</h4>
+                        ${data.page_texts.map((text, i) => `
+                            <details>
+                                <summary>페이지 ${i + 1}</summary>
+                                <pre style="white-space: pre-wrap; background: white; padding: 10px; border-radius: 5px; margin: 10px 0;">${text}</pre>
+                            </details>
+                        `).join('')}
+                    `;
+                } else {
+                    resultContent.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                }
+                
+                result.style.display = 'block';
+                
+            } catch (error) {
+                resultContent.innerHTML = `<div class="error">❌ 오류가 발생했습니다: ${error.message}</div>`;
+                result.style.display = 'block';
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = '🔍 OCR 실행';
+        });
+    </script>
+</body>
+</html>
