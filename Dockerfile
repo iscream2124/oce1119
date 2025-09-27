@@ -14,8 +14,8 @@ WORKDIR /app
 # 모든 파일 복사
 COPY . .
 
-# Python 패키지 설치
-RUN pip install --no-cache-dir -r requirements.txt
+# pip 업그레이드 및 Python 패키지 설치
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # 포트 노출
 EXPOSE 8501
