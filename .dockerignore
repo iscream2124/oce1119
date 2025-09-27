@@ -57,5 +57,7 @@ ocr_output/
 # Streamlit
 .streamlit/
 
-# Keep requirements.txt
+# Keep essential files
 !requirements.txt
+!app.py
+!templates/
