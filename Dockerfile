@@ -11,11 +11,15 @@ RUN apt-get update && apt-get install -y \
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# 모든 파일 복사
-COPY . .
+# requirements.txt 먼저 복사 (캐시 최적화)
+COPY requirements.txt .
 
 # pip 업그레이드 및 Python 패키지 설치
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
+
+# 나머지 파일 복사
+COPY app.py .
+COPY templates/ templates/
 
 # 포트 노출
 EXPOSE 8501

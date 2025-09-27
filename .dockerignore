@@ -57,7 +57,9 @@ ocr_output/
 # Streamlit
 .streamlit/
 
-# Keep essential files
+# Keep essential files for Docker build
 !requirements.txt
 !app.py
 !templates/
+!nixpacks.toml
+!railway.json
